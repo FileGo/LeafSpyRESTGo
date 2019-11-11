@@ -15,19 +15,16 @@ type Env struct {
 	db *sql.DB
 }
 
-type LeafSpyData struct {
-}
-
 func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.URL.Query())
-
-	stmt, err := env.db.Prepare(`INSERT INTO data VALUES(NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+	// Prepare a statement
+	stmt, err := env.db.Prepare(`INSERT INTO data VALUES(NULL,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 
 	if err != nil {
 		w.Write([]byte(`"status":"1"`))
 		return
 	}
 
+	// Execute query
 	_, err = stmt.Exec(r.FormValue("DevBat"), r.FormValue("Gids"), r.FormValue("Lat"), r.FormValue("Long"), r.FormValue("Elv"), r.FormValue("Seq"), r.FormValue("Trip"), r.FormValue("Odo"),
 		r.FormValue("SOC"), r.FormValue("AHr"), r.FormValue("BatTemp"), r.FormValue("Amb"), r.FormValue("Wpr"), r.FormValue("PlugState"), r.FormValue("ChgrMode"), r.FormValue("ChrgPwr"),
 		r.FormValue("VIN"), r.FormValue("PwrSw"), r.FormValue("Tunits"), r.FormValue("RPM"), r.FormValue("SOH"))
@@ -37,6 +34,7 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// This sends feedback to LeafSpy that operation was successful
 	w.Write([]byte(`"status":"0"`))
 
 }
