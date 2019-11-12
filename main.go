@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -37,6 +39,17 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	// This sends feedback to LeafSpy that operation was successful
 	w.Write([]byte(`"status":"0"`))
 
+	// Reroute data to leaf-status.com with credentials
+	leafstatusURL := strings.Replace(r.URL.RawQuery, "user=", "user="+url.QueryEscape(os.Getenv("leafstatus_user")), 1)
+	leafstatusURL = strings.Replace(leafstatusURL, "pass=", "pass="+url.QueryEscape(os.Getenv("leafstatus_pass")), 1)
+	leafstatusURL = "https://leaf-status.com/api/vehicle/update?%s" + leafstatusURL
+
+	_, err = http.Get(leafstatusURL)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
 }
 
 func main() {
@@ -60,5 +73,5 @@ func main() {
 
 	// Set up web server
 	http.HandleFunc("/update", env.updateHandler)
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":"+os.Getenv("http_port"), nil)
 }
