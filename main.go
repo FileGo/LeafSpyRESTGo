@@ -22,6 +22,7 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	stmt, err := env.db.Prepare(`INSERT INTO data VALUES(NULL,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 
 	if err != nil {
+		log.Panic("Statement prepare error")
 		w.Write([]byte(`"status":"1"`))
 		return
 	}
@@ -32,6 +33,7 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("VIN"), r.FormValue("PwrSw"), r.FormValue("Tunits"), r.FormValue("RPM"), r.FormValue("SOH"))
 
 	if err != nil {
+		log.Panic("Query execution error")
 		w.Write([]byte(`"status":"1"`))
 		return
 	}
@@ -42,13 +44,17 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	// Reroute data to leaf-status.com with credentials
 	leafstatusURL := strings.Replace(r.URL.RawQuery, "user=", "user="+url.QueryEscape(os.Getenv("leafstatus_user")), 1)
 	leafstatusURL = strings.Replace(leafstatusURL, "pass=", "pass="+url.QueryEscape(os.Getenv("leafstatus_pass")), 1)
-	leafstatusURL = "https://leaf-status.com/api/vehicle/update?%s" + leafstatusURL
+	leafstatusURL = "https://leaf-status.com/api/vehicle/update?" + leafstatusURL
 
 	_, err = http.Get(leafstatusURL)
 
 	if err != nil {
-		log.Panic(err)
+		log.Panic("Leaf-status.com error")
 	}
+
+}
+
+func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
@@ -57,6 +63,24 @@ func main() {
 	err := godotenv.Load("config.env")
 	if err != nil {
 		log.Panic(err)
+	}
+
+	// Check if error log file is set
+	if os.Getenv("log_file") != "" {
+		// Open log file
+		f, err := os.OpenFile(os.Getenv("log_file"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0664)
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		defer f.Close()
+
+		// Set log to output
+		log.SetOutput(f)
+
+		// Log that we started the program
+		log.Println("Program started")
 	}
 
 	// Open database connection
@@ -73,5 +97,6 @@ func main() {
 
 	// Set up web server
 	http.HandleFunc("/update", env.updateHandler)
+	http.HandleFunc("/", env.indexHandler)
 	http.ListenAndServe(":"+os.Getenv("http_port"), nil)
 }
