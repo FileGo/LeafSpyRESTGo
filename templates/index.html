@@ -4,56 +4,38 @@
 </head>
 <body>
     <h1>LeafSpyRESTGo</h1>
-    <p>VIN:&nbsp;</p>
-    <p>SOH: &nbsp;</p>
-    <table>
-        <thead>
-            <tr>
-                <td>ID</td>
-                <td>Time</td>
-                <td>DevBat</td>
-                <td>Gids</td>
-                <td>Latitude</td>
-                <td>Longitude</td>
-                <td>Elevation</td>
-                <td>Seq</td>
-                <td>Trip</td>
-                <td>Odo</td>
-                <td>SOC</td>
-                <td>AHr</td>
-                <td>BatTemp</td>
-                <td>Amb</td>
-                <td>Wpr</td>
-                <td>PlugState</td>
-                <td>ChrgMode</td>
-                <td>ChrgPwr</td>
-                <td>PwrSw</td>
-                <td>RPM</td>
-            </tr>
-        </thead>
-        <tbody>
-                <tr>
-                    <td>{{.dataRow.ID}}</td>
-                    <td>&nbsp;</td>
-                    <td>{{.dataRow.DevBat}}</td>
-                    <td>Gids</td>
-                    <td>Latitude</td>
-                    <td>Longitude</td>
-                    <td>Elevation</td>
-                    <td>Seq</td>
-                    <td>Trip</td>
-                    <td>Odo</td>
-                    <td>SOC</td>
-                    <td>AHr</td>
-                    <td>BatTemp</td>
-                    <td>Amb</td>
-                    <td>Wpr</td>
-                    <td>PlugState</td>
-                    <td>ChrgMode</td>
-                    <td>ChrgPwr</td>
-                    <td>PwrSw</td>
-                    <td>RPM</td>
-                </tr>
-        </tbody>
+    <table border="1">
+        <tr>
+            <th>VIN</th>
+            <td>{{.DataRow.VIN}}</td>
+        </tr>
+        <tr>
+            <th>Last update</th>
+            <td>{{.DataRow.Timestamp}}</td>
+        </tr>
+        <tr>
+            <th>SOC</th>
+            <td>{{printf "%.2f" .DataRow.SOC}}&nbsp;&percnt;</td>
+        </tr>
+        <tr>
+            <th>Location</th>
+            <td><iframe width="300" height="300" frameborder="0" style="border:0" src="https://www.google.com/maps/embed/v1/place?q={{.DataRow.Lat}}%2C{{.DataRow.Long}}&key=AIzaSyDYOEwZEcF9LStgZPLwjEXVy5F87HZxPUo" allowfullscreen></iframe></td>
+        </tr>
+        <tr>
+            <th>Odometer</th>
+            <td>{{printf "%.1f" .DataRow.OdoMi}} mi / {{printf "%.1f" .DataRow.Odo}} km</td>
+        </tr>
+        <tr>
+            <th>Battery temp</th>
+            <td>{{.DataRow.BatTemp}}&deg;{{.DataRow.Tunits}}</td>
+        </tr>
+        <tr>
+            <th>Ambient temp</th>
+            <td>{{.DataRow.Amb}}&deg;{{.DataRow.Tunits}}</td>
+        </tr>
+        <tr>
+            <th>SOH</th>
+            <td>{{printf "%.2f" .DataRow.SOH}}&nbsp;&percnt;</td>
+        </tr>
     </table>
 </body>

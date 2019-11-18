@@ -46,6 +46,7 @@ type LeafDataRow struct {
 	Tunits    string    `db:"Tunits"`
 	RPM       int32     `db:"RPM"`
 	SOH       float32   `db:"SOH"`
+	OdoMi     float32
 }
 
 // retrieveLastRow retrieves latest row of data in the database
@@ -58,6 +59,9 @@ func (dataRow *LeafDataRow) retrieveLastRow(env *Env) {
 	if err != nil {
 		log.Panic("Error retrieving last data")
 	}
+
+	// Convert data
+	dataRow.OdoMi = dataRow.Odo / 1.609
 
 	fmt.Printf("%#v", dataRow)
 
@@ -101,21 +105,23 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-type indexPage struct {
-	dataRow LeafDataRow
+// IndexPage contains data for / template
+type IndexPage struct {
+	DataRow LeafDataRow
 }
 
 func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 	row := LeafDataRow{}
 	row.retrieveLastRow(env)
 
-	p := indexPage{dataRow: row}
-
 	// Parse template
 	t, err := template.ParseFiles("./templates/index.html")
 
 	if err != nil {
 		log.Panic("Template error!")
+	}
+	p := IndexPage{
+		DataRow: row,
 	}
 
 	t.Execute(w, p)
@@ -159,7 +165,14 @@ func main() {
 	defer env.db.Close()
 
 	// Set up web server
+	// This prevents "ttp: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
+	server := &http.Server{
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		Addr:         ":" + os.Getenv("http_port"),
+	}
+
 	http.HandleFunc("/update", env.updateHandler)
 	http.HandleFunc("/", env.indexHandler)
-	http.ListenAndServe(":"+os.Getenv("http_port"), nil)
+	server.ListenAndServe()
 }

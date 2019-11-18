@@ -5,3 +5,5 @@ error.log
 LeafSpyRESTGo-Linux
 __debug_bin
 .vscode/launch.json
+certs/cert.pem
+certs/key.pem
