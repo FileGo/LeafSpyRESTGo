@@ -120,6 +120,7 @@ func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Panic("Template error!")
 	}
+
 	p := IndexPage{
 		DataRow: row,
 	}
@@ -166,13 +167,29 @@ func main() {
 
 	// Set up web server
 	// This prevents "ttp: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
-	server := &http.Server{
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		Addr:         ":" + os.Getenv("http_port"),
+	var server *http.Server
+
+	if os.Getenv("use_ssl") == "1" {
+		server = &http.Server{
+			ReadTimeout:  3 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			Addr:         ":" + os.Getenv("http_port"),
+		}
+	} else {
+		server = &http.Server{
+			ReadTimeout:  3 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			Addr:         ":" + os.Getenv("http_port"),
+		}
 	}
 
 	http.HandleFunc("/update", env.updateHandler)
 	http.HandleFunc("/", env.indexHandler)
-	server.ListenAndServe()
+
+	if os.Getenv("use_ssl") == "1" {
+		server.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
+	} else {
+		server.ListenAndServe()
+	}
+
 }
