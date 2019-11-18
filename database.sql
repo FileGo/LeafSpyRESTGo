@@ -1,5 +1,6 @@
 CREATE TABLE `data` (
 	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`time` TIMESTAMP NOT NULL DEFAULT current_timestamp(),
 	`DevBat` INT(11) NULL DEFAULT NULL COMMENT 'Device Battery percentage',
 	`Gids` INT(11) NULL DEFAULT NULL,
 	`Lat` FLOAT NULL DEFAULT NULL,

@@ -3,3 +3,5 @@ deploy.ps1
 .vscode/tasks.json
 error.log
 LeafSpyRESTGo-Linux
+__debug_bin
+.vscode/launch.json
