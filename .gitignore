@@ -1,11 +1,8 @@
 config.env
-deploy.ps1
-.vscode/tasks.json
-error.log
+*.ps1
+*.log
 LeafSpyRESTGo-Linux
 __debug_bin
-.vscode/launch.json
-certs/cert.pem
-certs/key.pem
-certs/server.crt
-certs/server.key
+.vscode/*
+certs/*
+static/*

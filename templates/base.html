@@ -1,0 +1,30 @@
+{{define "base"}}
+<!DOCTYPE html>
+<head>
+    <title>LeafSpyRESTGo</title>
+    <script type="text/javascript" src="./static/jquery-3.4.1.js"></script>
+    <script type="text/javascript">
+    $(document).ready(function () { 
+        loadContent("/index/");
+    });
+
+    function loadContent(URL) {
+        $.get(URL).done(function(data) {
+            $("#main_content").html(data);
+        });
+    }
+    </script>
+</head>
+<body>
+    <table id="menu">
+        <tr>
+            <th>LeafSpyRESTGo</th>
+            <td><a href="javascript:loadContent('/index/');">Home</a></td>
+            <td><a href="javascript:loadContent('/trips/');">Trips</a></td>
+        </tr>
+    </table>
+    <div id="main_content">
+        
+    </div>  
+</body>
+{{end}}

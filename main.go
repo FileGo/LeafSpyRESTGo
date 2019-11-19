@@ -63,8 +63,6 @@ func (dataRow *LeafDataRow) retrieveLastRow(env *Env) {
 	// Convert data
 	dataRow.OdoMi = dataRow.Odo / 1.609
 
-	fmt.Printf("%#v", dataRow)
-
 }
 
 // updateHandler handles the /update part of the webserver
@@ -110,6 +108,18 @@ type IndexPage struct {
 	DataRow LeafDataRow
 }
 
+func (env *Env) baseHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Parse template
+	t, err := template.ParseFiles("./templates/base.html")
+
+	if err != nil {
+		log.Panic("Template error: " + err.Error())
+	}
+
+	t.ExecuteTemplate(w, "base", nil)
+}
+
 func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 	row := LeafDataRow{}
 	row.retrieveLastRow(env)
@@ -118,7 +128,7 @@ func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := template.ParseFiles("./templates/index.html")
 
 	if err != nil {
-		log.Panic("Template error!")
+		log.Panic("Template error: " + err.Error())
 	}
 
 	p := IndexPage{
@@ -126,6 +136,17 @@ func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t.Execute(w, p)
+}
+
+func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse template
+	t, err := template.ParseFiles("./templates/trips.html")
+
+	if err != nil {
+		log.Panic("Template error: " + err.Error())
+	}
+
+	t.Execute(w, nil)
 }
 
 func main() {
@@ -166,7 +187,7 @@ func main() {
 	defer env.db.Close()
 
 	// Set up web server
-	// This prevents "ttp: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
+	// This prevents "http: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
 	var server *http.Server
 
 	if os.Getenv("use_ssl") == "1" {
@@ -183,9 +204,16 @@ func main() {
 		}
 	}
 
+	// Function handlers
 	http.HandleFunc("/update", env.updateHandler)
-	http.HandleFunc("/", env.indexHandler)
+	http.HandleFunc("/trips/", env.tripsHandler)
+	http.HandleFunc("/index/", env.indexHandler)
+	http.HandleFunc("/", env.baseHandler)
 
+	// Handle static files
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	// Start the webserver
 	if os.Getenv("use_ssl") == "1" {
 		server.ListenAndServeTLS("./certs/server.crt", "./certs/server.key")
 	} else {
