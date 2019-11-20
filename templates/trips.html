@@ -1,1 +1,15 @@
-<h1>Trips</h1> 
+<h1>Trips</h1>
+<table>
+    <tr>
+        <th>Trip ID</th>
+        <th>Time</th>
+    </tr>
+    {{range .}}
+    <tr>
+        <td><a href="javascript:loadContent('./trips/?id={{.ID}}');">{{.ID}}</a></td>
+        <td>{{.Timestamp}}</td>
+    </tr>
+    {{end}}
+</table>
+<br>
+<a href="javascript:loadContent('/index/');">Back</a>

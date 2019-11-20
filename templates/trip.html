@@ -1,0 +1,58 @@
+<h1>Trip {{.ID}}</h1>
+<div id="map"></div>
+<div id="capture"></div>
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Time</th>
+            <th>DevBat</th>
+            <th>Gids</th>
+            <th>Lat</th>
+            <th>Long</th>
+            <th>Elv</th>
+            <th>Seq</th>
+            <th>Odo (km)</th>
+            <th>Odo (mi)</th>
+            <th>SOC</th>
+            <th>AHr</th>
+            <th>BatTemp</th>
+            <th>Amb</th>
+            <th>Wpr</th>
+            <th>PlugState</th>
+            <th>ChrgMode</th>
+            <th>ChrgPwr</th>
+            <th>RPM</th>
+            <th>SOH</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .DataRows}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>{{.Timestamp}}</td>
+            <td>{{.DevBat}}</td>
+            <td>{{.Gids}}</td>
+            <td>{{.Lat}}</td>
+            <td>{{.Long}}</td>
+            <td>{{.Elv}}</td>
+            <td>{{.Seq}}</td>
+            <td>{{.Odo}}</td>
+            <td>{{.OdoMi}}</td>
+            <td>{{.SOC}}&nbsp;&percnt;</td>
+            <td>{{.AHr}}</td>
+            <td>{{.BatTemp}}&nbsp;{{.Tunits}}</td>
+            <td>{{.Amb}}&nbsp;{{.Tunits}}</td>
+            <td>{{.Wpr}}</td>
+            <td>{{.PlugState}}</td>
+            <td>{{.ChrgMode}}</td>
+            <td>{{.ChrgPwr}}</td>
+            <td>{{.RPM}}</td>
+            <td>{{.SOH}}&nbsp;&percnt;</td>
+
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+<br>
+<a href="javascript:loadContent('/trips/');">Back</a>
