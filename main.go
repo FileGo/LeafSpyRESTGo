@@ -27,16 +27,16 @@ type LeafDataRow struct {
 	Timestamp time.Time `db:"time"`
 	DevBat    int8      `db:"DevBat"`
 	Gids      int16     `db:"Gids"`
-	Lat       float32   `db:"Lat"`
-	Long      float32   `db:"Long"`
+	Lat       float64   `db:"Lat"`
+	Long      float64   `db:"Long"`
 	Elv       int32     `db:"Elv"`
 	Seq       int32     `db:"Seq"`
 	Trip      int32     `db:"Trip"`
-	Odo       float32   `db:"odo"`
-	SOC       float32   `db:"SOC"`
-	AHr       float32   `db:"AHr"`
-	BatTemp   float32   `db:"BatTemp"`
-	Amb       float32   `db:"Amb"`
+	Odo       float64   `db:"odo"`
+	SOC       float64   `db:"SOC"`
+	AHr       float64   `db:"AHr"`
+	BatTemp   float64   `db:"BatTemp"`
+	Amb       float64   `db:"Amb"`
 	Wpr       int8      `db:"Wpr"`
 	PlugState int8      `db:"PlugState"`
 	ChrgMode  int8      `db:"ChrgMode"`
@@ -45,8 +45,8 @@ type LeafDataRow struct {
 	PwrSw     int8      `db:"PwrSw"`
 	Tunits    string    `db:"Tunits"`
 	RPM       int32     `db:"RPM"`
-	SOH       float32   `db:"SOH"`
-	OdoMi     float32
+	SOH       float64   `db:"SOH"`
+	OdoMi     float64
 }
 
 // retrieveLastRow retrieves latest row of data in the database
@@ -68,6 +68,7 @@ func (dataRow *LeafDataRow) retrieveLastRow(env *Env) {
 // updateHandler handles the /update part of the webserver
 func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Connection", "close")
 
 	// Prepare a statement
 	stmt, err := env.db.Prepare(`INSERT INTO data VALUES(NULL,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
@@ -86,11 +87,13 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Panic("Query execution error")
 		w.Write([]byte(`"status":"1"`))
+		r.Body.Close()
 		return
 	}
 
 	// This sends feedback to LeafSpy that operation was successful
 	w.Write([]byte(`"status":"0"`))
+	r.Body.Close()
 
 	// Reroute data to leaf-status.com with credentials
 	leafstatusURL := strings.Replace(r.URL.RawQuery, "user=", "user="+url.QueryEscape(os.Getenv("leafstatus_user")), 1)
@@ -105,12 +108,6 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// BasePage contains data for / template
-type BasePage struct {
-	DataRow     LeafDataRow
-	GMapsAPIKey string
-}
-
 // baseHandler handles the base (header and footer) of the page
 func (env *Env) baseHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
@@ -122,7 +119,11 @@ func (env *Env) baseHandler(w http.ResponseWriter, r *http.Request) {
 		log.Panic("Template error: " + err.Error())
 	}
 
-	t.ExecuteTemplate(w, "base", nil)
+	t.Execute(w, struct {
+		GMapsAPIKey string
+	}{
+		GMapsAPIKey: os.Getenv("gmaps_apikey"),
+	})
 }
 
 // indexHandler handles the index page, which shows last row of the data
@@ -139,12 +140,13 @@ func (env *Env) indexHandler(w http.ResponseWriter, r *http.Request) {
 		log.Panic("Template error: " + err.Error())
 	}
 
-	p := BasePage{
+	t.Execute(w, struct {
+		DataRow     LeafDataRow
+		GMapsAPIKey string
+	}{
 		DataRow:     row,
 		GMapsAPIKey: os.Getenv("gmaps_apikey"),
-	}
-
-	t.Execute(w, p)
+	})
 }
 
 // Trip represents a trip from database
@@ -164,7 +166,7 @@ func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
 		// ID passed, show a single trip
 
 		// Prepare statement
-		stmt, err := env.db.Prepare("SELECT * FROM data WHERE Trip = ?")
+		stmt, err := env.db.Prepare("SELECT * FROM data WHERE Trip = ? ORDER BY time ASC")
 
 		if err != nil {
 			log.Panic("Database error: " + err.Error())
@@ -177,7 +179,7 @@ func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		dataRows := []LeafDataRow{}
-
+		i := 0
 		for rows.Next() {
 			dataRow := LeafDataRow{}
 
@@ -188,6 +190,7 @@ func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			dataRow.OdoMi = dataRow.Odo / 1.609
+			i++
 
 			dataRows = append(dataRows, dataRow)
 		}
@@ -201,11 +204,19 @@ func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Display template with data
 		t.Execute(w, struct {
-			ID       string
-			DataRows []LeafDataRow
+			ID           string
+			DataRows     []LeafDataRow
+			GMapsAPIKey  string
+			TripStart    time.Time
+			TripEnd      time.Time
+			TripDuration time.Duration
 		}{
 			id,
 			dataRows,
+			os.Getenv("gmaps_apikey"),
+			dataRows[0].Timestamp,
+			dataRows[len(dataRows)-1].Timestamp,
+			dataRows[len(dataRows)-1].Timestamp.Sub(dataRows[0].Timestamp),
 		})
 
 	} else {
@@ -281,21 +292,11 @@ func main() {
 	defer env.db.Close()
 
 	// Set up web server
-	// This prevents "http: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
-	var server *http.Server
-
-	if os.Getenv("use_ssl") == "1" {
-		server = &http.Server{
-			ReadTimeout:  3 * time.Second,
-			WriteTimeout: 5 * time.Second,
-			Addr:         ":" + os.Getenv("http_port"),
-		}
-	} else {
-		server = &http.Server{
-			ReadTimeout:  3 * time.Second,
-			WriteTimeout: 5 * time.Second,
-			Addr:         ":" + os.Getenv("http_port"),
-		}
+	// This should prevent "http: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
+	var server = &http.Server{
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		Addr:         ":" + os.Getenv("http_port"),
 	}
 
 	// Function handlers

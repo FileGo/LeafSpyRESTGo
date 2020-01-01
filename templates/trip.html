@@ -1,7 +1,9 @@
 <h1>Trip {{.ID}}</h1>
-<div id="map"></div>
-<div id="capture"></div>
-<table border="1">
+<p>Trip start: {{.TripStart}}</p>
+<p>Trip end: {{.TripEnd}}</p>
+<p>Duration: {{.TripDuration}}</p>
+<a href="javascript:$('#dataTable').toggle()">Show data</a>
+<table border="1" id="dataTable" style="display: none">
     <thead>
         <tr>
             <th>ID</th>
