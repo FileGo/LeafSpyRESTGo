@@ -100,7 +100,12 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	leafstatusURL = strings.Replace(leafstatusURL, "pass=", "pass="+url.QueryEscape(os.Getenv("leafstatus_pass")), 1)
 	leafstatusURL = "https://leaf-status.com/api/vehicle/update?" + leafstatusURL
 
-	_, err = http.Get(leafstatusURL)
+	// Prevents default golang http client to cause issues
+	var netClient = &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	_, err = netClient.Get(leafstatusURL)
 
 	if err != nil {
 		log.Panic("Leaf-status.com error")
