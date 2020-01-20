@@ -226,9 +226,19 @@ func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		// ID not passed, show list of trips
+		q := ""
+		order := ""
+
+		if r.URL.Query().Get("order") == "desc" {
+			q = "SELECT Trip, MIN(time) FROM data GROUP BY Trip ORDER BY MIN(time) DESC"
+			order = "asc"
+		} else {
+			q = "SELECT Trip, MIN(time) FROM data GROUP BY Trip ORDER BY MIN(time) ASC"
+			order = "desc"
+		}
 
 		// Prepare a statement
-		rows, err := env.db.Query("SELECT Trip, MIN(time) FROM data GROUP BY Trip")
+		rows, err := env.db.Query(q)
 
 		if err != nil {
 			log.Panic("Database error: " + err.Error())
@@ -255,7 +265,13 @@ func (env *Env) tripsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Panic("Template error: " + err.Error())
 		}
 
-		t.Execute(w, trips)
+		t.Execute(w, struct {
+			Trips []Trip
+			Order string
+		}{
+			trips,
+			order,
+		})
 	}
 }
 

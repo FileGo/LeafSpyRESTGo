@@ -1,10 +1,10 @@
 <h1>Trips</h1>
-<table>
+<table border="1">
     <tr>
         <th>Trip ID</th>
-        <th>Time</th>
+        <th><a href="javascript:loadContent('/trips/?order={{.Order}}');">Time</a></th>
     </tr>
-    {{range .}}
+    {{range .Trips}}
     <tr>
         <td><a href="javascript:loadContent('./trips/?id={{.ID}}');">{{.ID}}</a></td>
         <td>{{.Timestamp}}</td>
