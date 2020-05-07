@@ -1,3 +1,4 @@
+.gitignore
 config.env
 *.ps1
 *.log

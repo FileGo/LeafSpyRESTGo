@@ -7,20 +7,43 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
+
+func updateLeafStatusCom(wg *sync.WaitGroup, leafstatusURL string) {
+	defer wg.Done()
+
+	netClient := &http.Client{
+		Timeout: time.Second * 10, // Prevents default golang http client to cause issues
+	}
+
+	_, err := netClient.Get(leafstatusURL)
+
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
 // updateHandler handles the /update part of the webserver
 func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Connection", "close")
+
+	// Reroute data to leaf-status.com with credentials
+	leafstatusURL := strings.Replace(r.URL.RawQuery, "user=", "user="+url.QueryEscape(os.Getenv("leafstatus_user")), 1)
+	leafstatusURL = strings.Replace(leafstatusURL, "pass=", "pass="+url.QueryEscape(os.Getenv("leafstatus_pass")), 1)
+	leafstatusURL = "https://leaf-status.com/api/vehicle/update?" + leafstatusURL
+	var wg sync.WaitGroup
+	wg.Add(1)
+	updateLeafStatusCom(&wg, leafstatusURL)
 
 	// Prepare a statement
 	stmt, err := env.db.Prepare(`INSERT INTO data VALUES(NULL,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 
 	if err != nil {
-		log.Panic("Statement prepare error:")
+		log.Panic(err)
 		w.Write([]byte(`"status":"1"`))
+		wg.Wait()
 		return
 	}
 
@@ -30,32 +53,17 @@ func (env *Env) updateHandler(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("VIN"), r.FormValue("PwrSw"), r.FormValue("Tunits"), r.FormValue("RPM"), r.FormValue("SOH"))
 
 	if err != nil {
-		log.Panic("Query execution error")
+		log.Panic(err)
 		w.Write([]byte(`"status":"1"`))
-		r.Body.Close()
+		wg.Wait()
 		return
 	}
 
 	// This sends feedback to LeafSpy that operation was successful
 	w.Write([]byte(`"status":"0"`))
-	r.Body.Close()
 
-	// Reroute data to leaf-status.com with credentials
-	leafstatusURL := strings.Replace(r.URL.RawQuery, "user=", "user="+url.QueryEscape(os.Getenv("leafstatus_user")), 1)
-	leafstatusURL = strings.Replace(leafstatusURL, "pass=", "pass="+url.QueryEscape(os.Getenv("leafstatus_pass")), 1)
-	leafstatusURL = "https://leaf-status.com/api/vehicle/update?" + leafstatusURL
-
-	// Prevents default golang http client to cause issues
-	var netClient = &http.Client{
-		Timeout: time.Second * 10,
-	}
-
-	_, err = netClient.Get(leafstatusURL)
-
-	if err != nil {
-		log.Panic("Leaf-status.com error")
-	}
-
+	// Wait for leaf-status.com goroutine
+	wg.Wait()
 }
 
 // baseHandler handles the base (header and footer) of the page

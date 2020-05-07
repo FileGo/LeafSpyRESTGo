@@ -54,10 +54,10 @@ func (dataRow *LeafDataRow) retrieveLastRow(env *Env) {
 	err := row.Scan(&dataRow.ID, &dataRow.Timestamp, &dataRow.DevBat, &dataRow.Gids, &dataRow.Lat, &dataRow.Long, &dataRow.Elv, &dataRow.Seq, &dataRow.Trip, &dataRow.Odo, &dataRow.SOC, &dataRow.AHr, &dataRow.BatTemp, &dataRow.Amb, &dataRow.Wpr, &dataRow.PlugState, &dataRow.ChrgMode, &dataRow.ChrgPwr, &dataRow.VIN, &dataRow.PwrSw, &dataRow.Tunits, &dataRow.RPM, &dataRow.SOH)
 
 	if err != nil {
-		log.Panic("Error retrieving last data")
+		log.Panic(err)
 	}
 
-	// Convert data
+	// Convert km to miles
 	dataRow.OdoMi = dataRow.Odo / 1.609
 
 }
@@ -98,7 +98,7 @@ func main() {
 
 	db, err := sql.Open(os.Getenv("db_type"), dbDSN)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	env := &Env{db: db}
@@ -106,11 +106,8 @@ func main() {
 	defer env.db.Close()
 
 	// Set up web server
-	// This should prevent "http: Accept error: accept tcp [::]:....: accept4: too many open files; retrying in ..." errors
-	var server = &http.Server{
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		Addr:         ":" + os.Getenv("http_port"),
+	server := &http.Server{
+		Addr: ":" + os.Getenv("http_port"),
 	}
 
 	// Function handlers
